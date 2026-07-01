@@ -111,12 +111,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         time_disp = f"{timer} sec" if timer < 60 else f"{timer // 60} min"
         
         init_text = (
-            f"🏁 **Quiz Setup Ready!**\n\n"
+            f"🏁 **Your Quiz Setup Ready!**\n\n"
             f"📚 **Title:** {escape_markdown(title)}\n"
             f"ℹ️ **Description:** {escape_markdown(desc) if desc else 'No description'}\n"
             f"🙋‍♂️ **Questions:** {total_q[0]}\n"
             f"⏱ **Time per question:** {time_disp}\n\n"
-            "⚠️ *Quiz shuru karne ke liye kam se kam 2 users ka Ready hona zaroori hai!*"
+            "⚠️ *Quiz shuru karne ke liye kam se kam 2 users I am Ready! pe click kare!*"
         )
         
         keyboard = [[InlineKeyboardButton("I am ready! 🎯 (0)", callback_data=f"ready_{quiz_id}")]]
@@ -126,10 +126,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Normal private chat initialization layout
     welcome_text = (
-        "👋 **Welcome to Laado Quiz Bot!**\n\n"
+        "👋 **Welcome to Premium Quiz Bot!**\n\n"
         "Niche diye gaye buttons se aap apna naya quiz bana sakte hain ya pehle banaye huye quizzes dekh sakte hain:\n\n"
-        "🚀 /newquiz - New Quiz Create Kare\n"
         "🖥️ /help - Help Menu"
+        "🚀 /newquiz - New Quiz Create Kare\n"
     )
     keyboard = [
         [InlineKeyboardButton("Create New Quiz 🚀", callback_data="btn_newquiz")],
@@ -286,10 +286,10 @@ async def handle_back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     welcome_text = (
-        "👋 **Welcome to Laado Quiz Bot!**\n\n"
+        "👋 **Welcome to Premium Quiz Bot!**\n\n"
         "Niche diye gaye buttons se aap apna naya quiz bana sakte hain ya pehle banaye huye quizzes dekh sakte hain:\n\n"
-        "🚀 /newquiz - Naya Quiz banana shuru karein\n"
         "🖥️ /help - Help Menu"
+        "🚀 /newquiz - New Quiz Create Kare\n"
     )
     keyboard = [
         [InlineKeyboardButton("Create New Quiz 🚀", callback_data="btn_newquiz")],
@@ -631,7 +631,7 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(keyboard))
         
         # Send countdown messages instead of editing the setup message
-        for count in ["5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"]:
+        for count in ["5", "4", "3", "2", "1"]:
             countdown_msg = await context.bot.send_message(chat_id=chat_id, text=count)
             await asyncio.sleep(1)
             await context.bot.delete_message(chat_id=chat_id, message_id=countdown_msg.message_id)
@@ -669,7 +669,7 @@ async def stop_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # Stop the quiz and show leaderboard
-    await update.message.reply_text("🛑 Quiz stop ho gaya! Final leaderboard dikha raha hoon...")
+    await update.message.reply_text("Quiz stop ho gaya! Final Result dikha raha hoon...")
     await compile_group_leaderboard(chat_id, context)
 
 async def send_next_group_poll(chat_id, context):
@@ -837,9 +837,9 @@ async def compile_group_leaderboard(chat_id, context):
             rank_icon = f"{idx}."
         
         # Format entry with new design
-        leaderboard += f"{rank_icon} 💗 {user_name}\n"
-        leaderboard += f"   📊 Total Score: {score}/{total_questions_answered}\n"
-        leaderboard += f"   ⏱️ Total Time: ({total_time})\n\n"
+        leaderboard += f"{rank_icon}  {user_name}\n"
+        leaderboard += f"    Total Score: {score}/{total_questions_answered}\n"
+        leaderboard += f"    Total Time: ({total_time})\n\n"
     
     # Add congratulations footer
     footer = "🏆 Congratulations to all participants!"
