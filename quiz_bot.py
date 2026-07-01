@@ -415,7 +415,8 @@ async def handle_confirm_solo(update: Update, context: ContextTypes.DEFAULT_TYPE
             "question_start_times": {},
             "ready_users": {user_id},
             "quiz_started": True,
-            "poll_message_ids": {}  # Track poll message IDs for closing
+            "poll_message_ids": {},  # Track poll message IDs for closing
+            "setup_message_id": None  # Track setup message to keep it
         }
     
     await asyncio.sleep(1)
@@ -594,8 +595,13 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "question_start_times": {},
             "ready_users": set(),  
             "quiz_started": False,
-            "poll_message_ids": {}  # Track poll message IDs for closing
+            "poll_message_ids": {},  # Track poll message IDs for closing
+            "setup_message_id": query.message.message_id  # Store setup message ID
         }
+    else:
+        # Update setup message ID if not already set
+        if GROUP_GAMES[chat_id].get("setup_message_id") is None:
+            GROUP_GAMES[chat_id]["setup_message_id"] = query.message.message_id
         
     game = GROUP_GAMES[chat_id]
 
@@ -617,15 +623,14 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if ready_count >= 2:
         game["quiz_started"] = True
         await query.answer("🎯 Target achieved! Quiz start ho rahi hai...")
-        await query.edit_message_text("⚡ All requirements met! Initializing countdown...")
         
-        # 5-second dynamic countdown deletion cycles
+        # Send countdown messages instead of editing the setup message
         for count in ["5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"]:
             countdown_msg = await context.bot.send_message(chat_id=chat_id, text=count)
             await asyncio.sleep(1)
             await context.bot.delete_message(chat_id=chat_id, message_id=countdown_msg.message_id)
 
-        # 5 seconds banner hold execution
+        # Send banner message
         banner_msg = await context.bot.send_message(chat_id=chat_id, text="🔥 Get ready! Quiz shuru ho rahi hai... 🚀")
         await asyncio.sleep(5)
         await context.bot.delete_message(chat_id=chat_id, message_id=banner_msg.message_id)
@@ -633,10 +638,17 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
         game["current_q"] = 0
         asyncio.create_task(send_next_group_poll(chat_id, context))
     else:
-        # Dynamic inline text monitoring refresh updates
+        # Update the setup message with new ready count - DO NOT EDIT, just reply
         keyboard = [[InlineKeyboardButton(f"I am ready! 🎯 ({ready_count}/2)", callback_data=f"ready_{quiz_id}")]]
+        updated_text = (
+            f"🏁 **Quiz Setup Active**\n\n"
+            f"Joined Users ({joined_count}): {names_list}\n\n"
+            f"*Waiting for 2 users to be ready. ({ready_count}/2 completed)*"
+        )
+        
+        # EDIT the original setup message to show new count
         await query.edit_message_text(
-            text=f"🏁 **Quiz Setup Active**\n\nJoined Users ({joined_count}): {names_list}\n\n*Waiting for 2 users to be ready. ({ready_count}/2 completed)*",
+            text=updated_text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
         )
