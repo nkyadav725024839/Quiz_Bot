@@ -638,12 +638,19 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
         game["current_q"] = 0
         asyncio.create_task(send_next_group_poll(chat_id, context))
     else:
-        # Update the setup message with new ready count - DO NOT EDIT, just reply
+        # Update the setup message with new ready count and ready users list
         keyboard = [[InlineKeyboardButton(f"I am ready! 🎯 ({ready_count}/2)", callback_data=f"ready_{quiz_id}")]]
+        
+        # Build ready users display
+        ready_users_list = [name for uid, name in game["joined_users"].items() if uid in game["ready_users"]]
+        ready_text = "\n".join([f"✅ {name}" for name in ready_users_list]) if ready_users_list else ""
+        
         updated_text = (
             f"🏁 **Quiz Setup Active**\n\n"
-            f"Joined Users ({joined_count}): {names_list}\n\n"
-            f"*Waiting for 2 users to be ready. ({ready_count}/2 completed)*"
+            f"👥 Joined Users ({joined_count}): {names_list}\n\n"
+            f"🎯 **Ready Users ({ready_count}/2):**\n{ready_text}\n\n"
+            f"*Quiz shuru karne ke liye 2 users ka Ready hona zaroori hai!*\n\n"
+            "💡 **Group me /stop command use karke quiz stop kar sakte ho.**"
         )
         
         # EDIT the original setup message to show new count
@@ -653,6 +660,27 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
             parse_mode="Markdown"
         )
         await query.answer("Aapne confirmation register kar di! 👍")
+
+async def stop_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Stop the running quiz in group"""
+    chat_id = update.message.chat_id
+    user_id = update.message.from_user.id
+    
+    # Check if quiz is running in this chat
+    if chat_id not in GROUP_GAMES:
+        await update.message.reply_text("❌ Koi quiz is group me chal nahi rahi hai!")
+        return
+    
+    game = GROUP_GAMES[chat_id]
+    
+    # Check if quiz has started
+    if not game.get("quiz_started"):
+        await update.message.reply_text("❌ Quiz abhi start hi nahi huya hai!")
+        return
+    
+    # Stop the quiz and show leaderboard
+    await update.message.reply_text("🛑 Quiz stop ho gaya! Final leaderboard dikha raha hoon...")
+    await compile_group_leaderboard(chat_id, context)
 
 async def send_next_group_poll(chat_id, context):
     game = GROUP_GAMES.get(chat_id)
@@ -705,14 +733,16 @@ async def send_next_group_poll(chat_id, context):
     # Wait for timer, then close the poll and move to next question
     await asyncio.sleep(timer)
     
-    # 🔴 CLOSE POLL EXPLICITLY
-    try:
-        await context.bot.stop_poll(chat_id=chat_id, message_id=game["poll_message_ids"][game["current_q"]])
-    except Exception as e:
-        logging.warning(f"Could not close poll: {e}")
-    
-    game["current_q"] += 1
-    asyncio.create_task(send_next_group_poll(chat_id, context))
+    # Check if quiz is still active before closing poll
+    if chat_id in GROUP_GAMES:
+        # 🔴 CLOSE POLL EXPLICITLY
+        try:
+            await context.bot.stop_poll(chat_id=chat_id, message_id=game["poll_message_ids"][game["current_q"]])
+        except Exception as e:
+            logging.warning(f"Could not close poll: {e}")
+        
+        game["current_q"] += 1
+        asyncio.create_task(send_next_group_poll(chat_id, context))
 
 async def track_poll_answers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Track poll answers from ALL users who participate, even if they didn't click Ready"""
@@ -872,6 +902,7 @@ def main():
     # Registering core structures hooks
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("stop", stop_quiz))  # Add /stop command
     
     app.add_handler(new_quiz_handler)
     app.add_handler(quiz_edit_flow_handler)
