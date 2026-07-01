@@ -128,8 +128,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         "👋 **Welcome to Premium Quiz Bot!**\n\n"
         "Niche diye gaye buttons se aap apna naya quiz bana sakte hain ya pehle banaye huye quizzes dekh sakte hain:\n\n"
-        "🖥️ /help - Help Menu"
-        "🚀 /newquiz - New Quiz Create Kare\n"
+        "🖥️ /help - Help Menu\n"
+        "🚀 /newquiz - New Quiz Create Kare"
     )
     keyboard = [
         [InlineKeyboardButton("Create New Quiz 🚀", callback_data="btn_newquiz")],
@@ -288,8 +288,8 @@ async def handle_back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         "👋 **Welcome to Premium Quiz Bot!**\n\n"
         "Niche diye gaye buttons se aap apna naya quiz bana sakte hain ya pehle banaye huye quizzes dekh sakte hain:\n\n"
-        "🖥️ /help - Help Menu"
-        "🚀 /newquiz - New Quiz Create Kare\n"
+        "🖥️ /help - Help Menu\n"
+        "🚀 /newquiz - New Quiz Create Kare"
     )
     keyboard = [
         [InlineKeyboardButton("Create New Quiz 🚀", callback_data="btn_newquiz")],
@@ -838,8 +838,8 @@ async def compile_group_leaderboard(chat_id, context):
         
         # Format entry with new design
         leaderboard += f"{rank_icon}  {user_name}\n"
-        leaderboard += f"    Total Score: {score}/{total_questions_answered}\n"
-        leaderboard += f"    Total Time: ({total_time})\n\n"
+        leaderboard += f"             Right: {score}/{total_questions_answered}\n"
+        leaderboard += f"             Time: ({total_time})\n\n"
     
     # Add congratulations footer
     footer = "🏆 Congratulations to all participants!"
