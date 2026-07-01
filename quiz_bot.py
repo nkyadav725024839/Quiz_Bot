@@ -119,7 +119,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⚠️ *Quiz shuru karne ke liye kam se kam 2 users ka Ready hona zaroori hai!*"
         )
         
-        keyboard = [[InlineKeyboardButton("I am ready! 🎯 (0/2)", callback_data=f"ready_{quiz_id}")]]
+        keyboard = [[InlineKeyboardButton("I am ready! 🎯 (0)", callback_data=f"ready_{quiz_id}")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(init_text, reply_markup=reply_markup, parse_mode="Markdown")
         return
@@ -579,6 +579,7 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Auto-joins users and sets dynamic counter to verify activation benchmarks"""
     query = update.callback_query
     chat_id = query.message.chat_id
+    message_id = query.message.message_id
     user_id = query.from_user.id
     user_name = query.from_user.username if query.from_user.username else query.from_user.first_name
     quiz_id = query.data.split("_")[1]
@@ -596,12 +597,14 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "ready_users": set(),  
             "quiz_started": False,
             "poll_message_ids": {},  # Track poll message IDs for closing
-            "setup_message_id": query.message.message_id  # Store setup message ID
+            "setup_message_id": message_id,  # Store setup message ID
+            "setup_panel_text": query.message.text  # Store original panel text
         }
     else:
         # Update setup message ID if not already set
         if GROUP_GAMES[chat_id].get("setup_message_id") is None:
-            GROUP_GAMES[chat_id]["setup_message_id"] = query.message.message_id
+            GROUP_GAMES[chat_id]["setup_message_id"] = message_id
+            GROUP_GAMES[chat_id]["setup_panel_text"] = query.message.text
         
     game = GROUP_GAMES[chat_id]
 
@@ -618,11 +621,14 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
     game["ready_users"].add(user_id)
     ready_count = len(game["ready_users"])
     joined_count = len(game["joined_users"])
-    names_list = ", ".join(game["joined_users"].values())
 
     if ready_count >= 2:
         game["quiz_started"] = True
         await query.answer("🎯 Target achieved! Quiz start ho rahi hai...")
+        
+        # Only edit button, keep panel message same
+        keyboard = []  # No button - just empty
+        await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(keyboard))
         
         # Send countdown messages instead of editing the setup message
         for count in ["5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"]:
@@ -638,27 +644,11 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
         game["current_q"] = 0
         asyncio.create_task(send_next_group_poll(chat_id, context))
     else:
-        # Update the setup message with new ready count and ready users list
-        keyboard = [[InlineKeyboardButton(f"I am ready! 🎯 ({ready_count}/2)", callback_data=f"ready_{quiz_id}")]]
+        # Update only button with new count - panel message stays SAME
+        keyboard = [[InlineKeyboardButton(f"I am ready! 🎯 ({ready_count})", callback_data=f"ready_{quiz_id}")]]
         
-        # Build ready users display
-        ready_users_list = [name for uid, name in game["joined_users"].items() if uid in game["ready_users"]]
-        ready_text = "\n".join([f"✅ {name}" for name in ready_users_list]) if ready_users_list else ""
-        
-        updated_text = (
-            f"🏁 **Quiz Setup Active**\n\n"
-            f"👥 Joined Users ({joined_count}): {names_list}\n\n"
-            f"🎯 **Ready Users ({ready_count}/2):**\n{ready_text}\n\n"
-            f"*Quiz shuru karne ke liye 2 users ka Ready hona zaroori hai!*\n\n"
-            "💡 **Group me /stop command use karke quiz stop kar sakte ho.**"
-        )
-        
-        # EDIT the original setup message to show new count
-        await query.edit_message_text(
-            text=updated_text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown"
-        )
+        # EDIT ONLY THE BUTTON, NOT THE WHOLE MESSAGE
+        await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(keyboard))
         await query.answer("Aapne confirmation register kar di! 👍")
 
 async def stop_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
