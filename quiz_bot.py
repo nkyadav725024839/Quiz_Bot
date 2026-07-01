@@ -246,14 +246,22 @@ async def handle_timer_text(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return ConversationHandler.END
 
 async def view_my_quizzes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Fetches and displays all quizzes created by the user"""
+    """Fetches and displays all quizzes created by the user with enriched info"""
     query = update.callback_query
     user_id = query.from_user.id
     await query.answer()
 
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT quiz_id, title FROM quizzes WHERE creator_id = ? ORDER BY quiz_id DESC", (user_id,))
+    # Fetch quizzes with question count
+    cursor.execute("""
+        SELECT q.quiz_id, q.title, q.timer, COUNT(qu.id) as question_count
+        FROM quizzes q
+        LEFT JOIN questions qu ON q.quiz_id = qu.quiz_id
+        WHERE q.creator_id = ?
+        GROUP BY q.quiz_id
+        ORDER BY q.quiz_id DESC
+    """, (user_id,))
     rows = cursor.fetchall()
     conn.close()
 
@@ -265,9 +273,18 @@ async def view_my_quizzes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    text = "📚 **Aapke Banaye Huye Quizzes:**\n\nNiche kisi bhi quiz par click karke uska summary panel open karein:\n"
+    # Build enriched text-based list
+    text = "📚 **Aapke Banaye Huye Quizzes:**\n\n"
+    
+    for idx, (qid, title, timer, q_count) in enumerate(rows, 1):
+        time_display = f"{timer}s" if timer < 60 else f"{timer // 60}m"
+        text += f"{idx}. **{escape_markdown(title)}**\n"
+        text += f"   ☞ {q_count} question{'s' if q_count != 1 else ''} | {time_display}/Q\n"
+        text += f"   `/view_{qid}`\n\n"
+    
+    # Build keyboard with view buttons
     keyboard = []
-    for qid, title in rows:
+    for qid, title, _, _ in rows:
         keyboard.append([InlineKeyboardButton(f"📝 {title}", callback_data=f"viewq_{qid}")])
     
     keyboard.append([InlineKeyboardButton("Back to Main Menu 🔙", callback_data="back_main")])
