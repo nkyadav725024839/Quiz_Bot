@@ -414,7 +414,8 @@ async def handle_confirm_solo(update: Update, context: ContextTypes.DEFAULT_TYPE
             "user_answers": {user_id: {}},
             "question_start_times": {},
             "ready_users": {user_id},
-            "quiz_started": True
+            "quiz_started": True,
+            "poll_message_ids": {}  # Track poll message IDs for closing
         }
     
     await asyncio.sleep(1)
@@ -592,7 +593,8 @@ async def handle_ready_click(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "user_answers": {},  
             "question_start_times": {},
             "ready_users": set(),  
-            "quiz_started": False  
+            "quiz_started": False,
+            "poll_message_ids": {}  # Track poll message IDs for closing
         }
         
     game = GROUP_GAMES[chat_id]
@@ -678,6 +680,9 @@ async def send_next_group_poll(chat_id, context):
         explanation=explanation if explanation else None, is_anonymous=False
     )
     
+    # Store poll message ID for later closing
+    game["poll_message_ids"][game["current_q"]] = poll_msg.message_id
+    
     game["poll_map"][poll_msg.poll.id] = {
         "correct_idx": correct_idx, 
         "chat_id": chat_id,
@@ -685,7 +690,15 @@ async def send_next_group_poll(chat_id, context):
         "question_index": game["current_q"]
     }
     
+    # Wait for timer, then close the poll and move to next question
     await asyncio.sleep(timer)
+    
+    # 🔴 CLOSE POLL EXPLICITLY
+    try:
+        await context.bot.stop_poll(chat_id=chat_id, message_id=game["poll_message_ids"][game["current_q"]])
+    except Exception as e:
+        logging.warning(f"Could not close poll: {e}")
+    
     game["current_q"] += 1
     asyncio.create_task(send_next_group_poll(chat_id, context))
 
