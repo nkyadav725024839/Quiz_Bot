@@ -111,15 +111,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         time_disp = f"{timer} sec" if timer < 60 else f"{timer // 60} min"
         
         init_text = (
-            f"🏁 **Your Quiz Setup Ready!**\n\n"
+            f"🎲 **Get ready for the quiz!**\n\n"
             f"📚 **Title:** {escape_markdown(title)}\n"
-            f"ℹ️ **Description:** {escape_markdown(desc) if desc else 'No description'}\n"
-            f"🙋‍♂️ **Questions:** {total_q[0]}\n"
+            f"🔥 **Description:** {escape_markdown(desc) if desc else 'No description'}\n"
+            f"🖊️ **Questions:** {total_q[0]}\n"
             f"⏱ **Time per question:** {time_disp}\n\n"
-            "⚠️ *Quiz shuru karne ke liye kam se kam 2 users I am Ready! pe click kare!*"
+            "🏁 *The quiz will begin when at least 2 people are ready to play. Send /stop to stop it.*"
         )
         
-        keyboard = [[InlineKeyboardButton("I am ready! 🎯 (0)", callback_data=f"ready_{quiz_id}")]]
+        keyboard = [[InlineKeyboardButton("I am ready!  (0)", callback_data=f"ready_{quiz_id}")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(init_text, reply_markup=reply_markup, parse_mode="Markdown")
         return
@@ -838,8 +838,8 @@ async def compile_group_leaderboard(chat_id, context):
         
         # Format entry with new design
         leaderboard += f"{rank_icon}  {user_name}\n"
-        leaderboard += f"             Right: {score}/{total_questions_answered}\n"
-        leaderboard += f"             Time: ({total_time})\n\n"
+        leaderboard += f"          Right Ans: {score}/{total_questions_answered}\n"
+        leaderboard += f"          To take time: ({total_time})\n\n"
     
     # Add congratulations footer
     footer = "🏆 Congratulations to all participants!"
